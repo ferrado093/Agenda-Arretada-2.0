@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agenda Arretada</title>
+<style>
+:root{--bg:#000000;--card:#141414;--line:#333333;--txt:#FFFFFF;--mut:#A6A6A6;--acc:#FFFFFF;--acc2:#D9D9D9;--on:#000000;--bad:#B3261E;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#FFFFFF;--card:#F2F2F2;--line:#D0D0D0;--txt:#000000;--mut:#5C5C5C;--acc:#000000;--acc2:#262626;--on:#FFFFFF;color-scheme:light}}
+html{height:100%}
+*{box-sizing:border-box}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--txt);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+main{max-width:880px;margin:0 auto;padding:20px 16px 80px}
+h1{font-size:1.9rem;margin:0}
+.sub{color:var(--mut);margin:2px 0 18px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+button,select,input,textarea{font:inherit;color:inherit}
+button{background:var(--acc);color:var(--on);border:0;border-radius:9px;padding:9px 16px;font-weight:600;cursor:pointer}
+button:hover{background:var(--acc2)}
+button.sec{background:transparent;border:1px solid var(--line);color:var(--txt)}
+button.sec.on{background:var(--acc);border-color:var(--acc);color:var(--on)}
+button.sec:hover{background:var(--line)}
+button.sec.on:hover{background:var(--acc2)}
+button.bad{background:var(--bad);color:#fff}
+button.bad:hover{background:var(--bad);filter:brightness(1.15)}
+button.sm{padding:5px 10px;font-size:.85rem}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+label{display:block;font-size:.88rem;color:var(--mut);margin:10px 0 4px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{display:flex;align-items:center;gap:6px;margin:0;color:var(--txt);border:1px solid var(--line);border-radius:20px;padding:4px 12px;cursor:pointer}
+.chips input{width:auto}
+.dia{color:var(--mut);font-weight:600;margin:18px 0 8px}
+.item{display:flex;gap:14px;align-items:flex-start;border-left:4px solid var(--acc);flex-wrap:wrap}
+.item.alta{border-color:var(--mut)}.item.urgente{border-color:var(--bad)}.item.baixa{border-color:var(--line)}
+.item.concluido{opacity:.55}.item.concluido .t{text-decoration:line-through}
+.hora{font-weight:700;font-size:1.15rem;min-width:56px}
+.corpo{flex:1;min-width:180px}.t{font-weight:600}
+.meta{color:var(--mut);font-size:.88rem}
+.acoes{display:flex;gap:6px;flex-wrap:wrap}
+.vazio{color:var(--mut);text-align:center;padding:28px 8px}
+.modos{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.modos button{text-align:left;border-radius:12px;padding:12px}
+.modos small{display:block;font-weight:400;opacity:.85}
+#toasts{position:fixed;right:12px;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:460px;margin-left:auto;display:flex;flex-direction:column;gap:8px;z-index:20}
+.toast{background:var(--card);border:1px solid var(--acc);border-radius:12px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.toast p{margin:0 0 8px}
+.toast.alarme{border-color:var(--bad);border-width:2px}
+.hid{display:none}
+.nota{font-size:.85rem;color:var(--mut)}
+@media (max-width:520px){.row{grid-template-columns:1fr}}
+.venc{color:#F08A8A}
+select.inl{width:auto;margin-top:8px;padding:4px 8px}
+h2{font-size:1.25rem;margin:4px 0 12px}
+.gravando{background:var(--bad)!important;color:#fff!important;border-color:var(--bad)!important}
+@media (prefers-color-scheme:light){.venc{color:var(--bad)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Agenda Arretada</h1>
+  <p class="sub" id="sub">Seus compromissos, do seu jeito.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="sec on" data-aba="comp">Compromissos</button>
+    <button class="sec" data-aba="org">Organizador</button>
+    <button class="sec" data-aba="pers">Personalidade e voz</button>
+  </div>
+
+  <!-- ================= COMPROMISSOS ================= -->
+  <section id="comp">
+    <div id="boasVindas" class="card hid">
+      <strong>Como você quer ser chamado?</strong>
+      <p class="meta" style="margin:4px 0 8px">Seu nome aparece na saudação e nos avisos. Você pode mudar depois na aba “Personalidade e voz”.</p>
+      <div class="bar" style="margin:0"><input id="nomeBv" maxlength="40" placeholder="Seu nome" style="flex:1;min-width:140px"><span><button class="sec" id="nomeBvNao">Agora não</button> <button id="nomeBvOk">Salvar</button></span></div>
+    </div>
+    <div class="bar">
+      <button id="novo">+ Novo compromisso</button>
+      <select id="filtro" style="width:auto" aria-label="Filtrar por situação">
+        <option value="pendente">Pendentes</option><option value="concluido">Concluídos</option>
+        <option value="">Todos</option>
+      </select>
+    </div>
+
+    <div id="form" class="card hid">
+      <strong id="formTitulo">Novo compromisso</strong>
+      <label for="fTitulo">Título *</label><input id="fTitulo" maxlength="200">
+      <div class="row">
+        <div><label for="fData">Data</label><input id="fData" type="date"></div>
+        <div><label for="fHora">Horário</label><input id="fHora" type="time"></div>
+      </div>
+      <div class="row">
+        <div><label for="fCat">Categoria</label>
+          <select id="fCat"><option>Pessoal</option><option>Trabalho</option><option>Reunião</option><option>Audiência</option><option>Saúde</option><option>Estudos</option><option>Outros</option></select></div>
+        <div><label for="fPri">Prioridade</label>
+          <select id="fPri"><option value="baixa">Baixa</option><option value="normal" selected>Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
+      </div>
+      <label for="fRep">Repetir</label>
+      <select id="fRep"><option value="nenhuma">Não repete</option><option value="diaria">Todos os dias</option><option value="uteis">Dias úteis (segunda a sexta)</option><option value="semanal">Toda semana</option><option value="mensal">Todo mês</option></select>
+      <label for="fLocal">Local</label><input id="fLocal">
+      <label for="fDesc">Descrição / observações</label><textarea id="fDesc" rows="2"></textarea>
+      <label>Avisos</label>
+      <div class="chips" id="fLeads"></div>
+      <label for="fLeadX">Aviso personalizado (minutos antes, opcional)</label>
+      <input id="fLeadX" type="number" min="1" max="10080" placeholder="Ex.: 45">
+
+      <label for="fVoz">Voz gravada deste lembrete</label>
+      <div class="bar" style="margin:0">
+        <select id="fVoz" style="flex:1;min-width:160px"></select>
+        <button class="sm sec" id="fVozOuvir" type="button">▶ Ouvir</button>
+      </div>
+      <div class="bar" style="margin:8px 0 0;justify-content:flex-start">
+        <button class="sm sec" id="fGravar" type="button">🎙 Gravar voz só para este lembrete</button>
+        <span id="fGravErro" class="meta" style="color:#F08A8A"></span>
+      </div>
+
+      <div class="bar" style="margin:16px 0 0"><span id="erro" class="meta" style="color:#F08A8A"></span>
+        <span><button class="sec" id="cancelar">Cancelar</button> <button id="salvar">Salvar</button></span></div>
+    </div>
+
+    <div id="lista"></div>
+  </section>
+
+  <!-- ================= ORGANIZADOR ================= -->
+  <section id="org" class="hid">
+    <div id="orgPastas">
+      <div class="bar"><button id="pNova">+ Nova pasta</button></div>
+      <div id="pForm" class="card hid">
+        <strong id="pFormTitulo">Nova pasta</strong>
+        <label for="pNome">Nome da pasta * (ex.: nº do processo, nome do projeto)</label><input id="pNome" maxlength="200">
+        <label for="pCliente">Cliente / descrição</label><input id="pCliente" maxlength="200">
+        <label for="pObs">Observações</label><textarea id="pObs" rows="2"></textarea>
+        <div class="bar" style="margin:16px 0 0"><span id="pErro" class="meta" style="color:#F08A8A"></span>
+          <span><button class="sec" id="pCancelar">Cancelar</button> <button id="pSalvar">Salvar</button></span></div>
+      </div>
+      <div id="pLista"></div>
+      <p class="nota">Crie uma pasta para cada processo, cliente ou projeto e dentro dela organize as peças e tarefas, com status e prazo. Em cada item com prazo você pode criar o lembrete na agenda com um toque.</p>
+    </div>
+
+    <div id="orgItens" class="hid">
+      <div class="bar">
+        <button class="sec" id="iVoltar">← Pastas</button>
+        <select id="iFiltro" style="width:auto" aria-label="Filtrar itens">
+          <option value="abertos">Em aberto</option><option value="feitos">Feitos</option><option value="">Todos</option>
+        </select>
+      </div>
+      <h2 id="iTitulo"></h2>
+      <div class="meta" id="iSub" style="margin:-8px 0 12px"></div>
+      <div class="bar"><button id="iNovo">+ Nova peça / item</button></div>
+      <div id="iForm" class="card hid">
+        <strong id="iFormTitulo">Nova peça / item</strong>
+        <label for="iTipo">Tipo *</label>
+        <input id="iTipo" list="tipos" maxlength="120" placeholder="Ex.: Contestação">
+        <datalist id="tipos">
+          <option>Petição inicial</option><option>Contestação</option><option>Réplica</option>
+          <option>Recurso de apelação</option><option>Agravo de instrumento</option><option>Embargos de declaração</option>
+          <option>Contrarrazões</option><option>Manifestação</option><option>Memoriais</option>
+          <option>Procuração</option><option>Documentos</option><option>Audiência</option>
+          <option>Cumprimento de sentença</option><option>Outros</option>
+        </datalist>
+        <label for="iTitulo2">Detalhe (opcional)</label><input id="iTitulo2" maxlength="200" placeholder="Ex.: sobre o contrato de locação">
+        <div class="row">
+          <div><label for="iStatus">Status</label><select id="iStatus"></select></div>
+          <div><label for="iPrazo">Prazo</label><input id="iPrazo" type="date"></div>
+        </div>
+        <label for="iObs">Anotações</label><textarea id="iObs" rows="3"></textarea>
+        <div class="bar" style="margin:16px 0 0"><span id="iErro" class="meta" style="color:#F08A8A"></span>
+          <span><button class="sec" id="iCancelar">Cancelar</button> <button id="iSalvar">Salvar</button></span></div>
+      </div>
+      <div id="iLista"></div>
+    </div>
+  </section>
+
+  <!-- ================= PERSONALIDADE E VOZ ================= -->
+  <section id="pers" class="hid">
+    <div class="card">
+      <label for="nome" style="margin-top:0">Seu nome</label>
+      <input id="nome" maxlength="40" placeholder="Como devo te chamar?">
+      <p class="meta" style="margin:6px 0 0">Aparece na saudação e nos avisos. Nas suas frases próprias, use {nome}.</p>
+    </div>
+    <div class="card">
+      <strong>Como a agenda fala com você</strong>
+      <div class="modos" id="modos" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <label for="saida" style="margin-top:0">Avisos</label>
+      <select id="saida"><option value="ambos">Voz gravada e depois o toque</option><option value="texto">Só o toque (sem voz)</option><option value="voz">Só a voz gravada (sem toque)</option></select>
+      <label for="custom">Sua própria frase para este modo (use {nome}, {titulo}, {quando} e {hora})</label>
+      <textarea id="custom" rows="2" placeholder="Deixe vazio para usar a frase padrão"></textarea>
+      <div class="bar" style="margin:14px 0 0"><span id="previa" class="meta"></span></div>
+    </div>
+
+    <div class="card">
+      <strong>Minhas vozes</strong>
+      <p class="meta" style="margin:4px 0 0">Grave sua própria voz (até 1 minuto). A voz marcada como padrão toca em todos os lembretes; em cada compromisso você pode escolher outra, ou nenhuma.</p>
+      <label for="vozNome">Nome da gravação (opcional)</label>
+      <input id="vozNome" maxlength="60" placeholder="Ex.: Lembrete de audiência">
+      <div class="bar" style="margin:12px 0 0;justify-content:flex-start">
+        <button id="gravar" type="button">🎙 Gravar minha voz</button>
+        <span id="gravErro" class="meta" style="color:#F08A8A"></span>
+      </div>
+      <div id="vozLista" style="margin-top:14px"></div>
+    </div>
+    <div id="cardNativo" class="hid">
+      <div class="card">
+        <strong>Toque e volume do alarme</strong>
+        <p class="meta" style="margin:4px 0 0">No horário, o celular toca a sua voz e, quando ela termina, começa o toque. Funciona com o app fechado e a tela bloqueada.</p>
+        <label for="toque">Toque</label>
+        <div class="bar" style="margin:0"><select id="toque" style="flex:1;min-width:160px"></select><button class="sm sec" id="toquePrevia" type="button">▶ Ouvir</button></div>
+        <label for="volume">Volume do alarme: <span id="volumeV"></span></label>
+        <input id="volume" type="range" min="10" max="100" step="10">
+        <label for="repet">Quantas vezes o toque repete</label>
+        <select id="repet"><option value="3">3 vezes</option><option value="5">5 vezes</option><option value="10">10 vezes</option><option value="20">20 vezes</option><option value="0">Até eu concluir (máximo 10 min)</option></select>
+        <label style="display:flex;gap:8px;align-items:center;color:var(--txt)"><input id="cresc" type="checkbox" style="width:auto"> Volume crescente (começa baixo e sobe)</label>
+        <div class="bar" style="margin:14px 0 0"><span id="testeMsg" class="meta"></span><button id="testar" type="button">Testar alarme agora</button></div>
+      </div>
+      <div class="card">
+        <strong>Para o alarme nunca falhar</strong>
+        <div id="perm" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <p class="nota" id="notaVoz"></p>
+  </section>
+</main>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const KEY='agendaArretada.web.v1';
+const CFG0=()=>({modo:'nordestino',saida:'ambos',custom:{},vozPadrao:'',nome:'',nomePerguntado:false,toque:'',volume:100,repeticoes:10,crescente:true});
+let S={ags:[],cfg:CFG0(),fired:{},snoozes:[],next:1,pastas:[],nextP:1,nextI:1};
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S=Object.assign(S,p);S.cfg=Object.assign(CFG0(),p.cfg||{});S.cfg.custom=S.cfg.custom||{};if(!Array.isArray(S.pastas))S.pastas=[]}}catch(e){}
+const persistir=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const save=()=>{persistir();if(window.__sync)window.__sync()};
+const NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+const AL=NATIVE?(Capacitor.registerPlugin?Capacitor.registerPlugin('Alarme'):(Capacitor.Plugins||{}).Alarme):null;
+const LN=NATIVE?(Capacitor.Plugins||{}).LocalNotifications:null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LEADS=[[1440,'1 dia antes'],[120,'2 h antes'],[60,'1 h antes'],[30,'30 min antes'],[15,'15 min antes'],[5,'5 min antes'],[0,'No horário']];
+const MODOS={
+ gentil:{nome:'Gentil',desc:'Educado e carinhoso',f:'Olá! Você tem “{titulo}” {quando}. Não se esqueça de se preparar. Tenha um excelente dia!',fn:'Olá, {nome}! Você tem “{titulo}” {quando}. Não se esqueça de se preparar. Tenha um excelente dia!'},
+ nordestino:{nome:'Nordestino',desc:'Oxente, visse?',f:'Oxente, meu patrão! “{titulo}” {quando}! Bora se organizar, visse?',fn:'Oxente, {nome}! “{titulo}” {quando}! Bora se organizar, visse?'},
+ profissional:{nome:'Profissional',desc:'Direto e objetivo',f:'Lembrete: {titulo} {quando}, às {hora}.',fn:'{nome}, lembrete: {titulo} {quando}, às {hora}.'},
+ bronca:{nome:'Bronca',desc:'Sem moleza',f:'EI, JUMENTO! TÁ NA HORA DE SE ORGANIZAR! {TITULO} {QUANDO}!',fn:'EI, {NOME}! TÁ NA HORA DE SE ORGANIZAR! {TITULO} {QUANDO}!'}
+};
+function quando(min){
+ if(min<=0)return 'agora';
+ if(min>=1440){const d=Math.round(min/1440);return 'daqui a '+d+(d>1?' dias':' dia')}
+ if(min>=60){const h=Math.round(min/60);return 'daqui a '+h+(h>1?' horas':' hora')}
+ return 'daqui a '+min+(min>1?' minutos':' minuto');
+}
+function nomeUsuario(){return String(S.cfg.nome||'').trim()}
+function montar(a,min){
+ const m=MODOS[S.cfg.modo],nome=nomeUsuario(); let f=(S.cfg.custom[S.cfg.modo]||'').trim()||(nome?m.fn:m.f);
+ const hora=a.dt.slice(11,16),q=quando(min);
+ return f.replace(/\{NOME\}/g,nome.toUpperCase()).replace(/\{nome\}/g,nome).replace(/\{TITULO\}/g,a.titulo.toUpperCase()).replace(/\{QUANDO\}/g,q.toUpperCase())
+  .replace(/\{titulo\}/g,a.titulo).replace(/\{quando\}/g,q).replace(/\{hora\}/g,hora);
+}
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+
+/* ===== repetição (compromissos recorrentes) ===== */
+const REP={diaria:'todo dia',uteis:'dias úteis',semanal:'toda semana',mensal:'todo mês'};
+const p2=n=>String(n).padStart(2,'0');
+const fmtLocal=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
+function passo(dt,rep){
+ const d=new Date(dt);
+ if(rep==='diaria')d.setDate(d.getDate()+1);
+ else if(rep==='semanal')d.setDate(d.getDate()+7);
+ else if(rep==='uteis'){do{d.setDate(d.getDate()+1)}while(d.getDay()===0||d.getDay()===6)}
+ else if(rep==='mensal'){const dia=+dt.slice(8,10);d.setDate(1);d.setMonth(d.getMonth()+1);d.setDate(Math.min(dia,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()))}
+ return fmtLocal(d);
+}
+function limparFired(a){for(const k of Object.keys(S.fired))if(k.startsWith(a.id+':'))delete S.fired[k]}
+/* ocorrência que passou há mais de 1 h sem ser concluída pula para a próxima */
+function avancarRecorrentes(){
+ let mudou=false;const lim=Date.now()-3600000;
+ for(const a of S.ags){
+  if(!a.rep||a.rep==='nenhuma'||a.estado!=='pendente')continue;
+  let n=0,m=false;
+  while(new Date(a.dt).getTime()<lim&&n<4000){a.dt=passo(a.dt,a.rep);n++;m=true}
+  if(m){limparFired(a);mudou=true}
+ }
+ return mudou;
+}
+function concluir(a){
+ if(a.rep&&a.rep!=='nenhuma'){
+  let d=a.dt,n=0;const agora=Date.now();
+  do{d=passo(d,a.rep);n++}while(new Date(d).getTime()<=agora&&n<4000);
+  a.dt=d;a.estado='pendente';limparFired(a);
+ }else a.estado='concluido';
+ S.snoozes=S.snoozes.filter(s=>s.id!==a.id);
+ limparToasts(a.id);
+ if(AL)AL.cancelarToque({apptId:a.id}).catch(()=>{});
+}
+
+/* ===== vozes gravadas (guardadas no aparelho, em IndexedDB) ===== */
+let VOZES=[],dbp=null,_vozOk;const vozesProntas=new Promise(r=>_vozOk=r);
+function db(){if(dbp)return dbp;dbp=new Promise((ok,no)=>{const r=indexedDB.open('agendaArretadaVozes',1);r.onupgradeneeded=()=>r.result.createObjectStore('v',{keyPath:'id'});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});return dbp}
+async function dbTx(modo,fn){const d=await db();return new Promise((ok,no)=>{const t=d.transaction('v',modo),q=fn(t.objectStore('v'));t.oncomplete=()=>ok(q&&q.result);t.onerror=()=>no(t.error)})}
+const vozPut=v=>dbTx('readwrite',s=>s.put(v));
+const vozDel=id=>dbTx('readwrite',s=>s.delete(id));
+const vozAll=()=>dbTx('readonly',s=>s.getAll());
+
+let rec=null;
+async function gravarIniciar(aoFim,aoTick){
+ if(!navigator.mediaDevices||!window.MediaRecorder)throw new Error('sem-suporte');
+ const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+ const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+ const mr=new MediaRecorder(stream,mime?{mimeType:mime}:undefined),partes=[],t0=Date.now();
+ mr.ondataavailable=e=>{if(e.data&&e.data.size)partes.push(e.data)};
+ mr.onstop=()=>{clearInterval(iv);clearTimeout(lim);stream.getTracks().forEach(t=>t.stop());rec=null;
+  aoFim(new Blob(partes,{type:mr.mimeType||mime||'audio/webm'}),Math.round((Date.now()-t0)/1000))};
+ const iv=setInterval(()=>aoTick(Math.floor((Date.now()-t0)/1000)),500);
+ const lim=setTimeout(()=>{if(mr.state!=='inactive')mr.stop()},60000);
+ rec={mr};mr.start();
+}
+function gravarParar(){if(rec&&rec.mr.state!=='inactive')rec.mr.stop()}
+function msgMic(e){return e&&e.name==='NotAllowedError'?'O microfone está bloqueado. Permita o acesso ao microfone nas configurações do app.':'Não foi possível usar o microfone neste aparelho.'}
+function ligarGravador(btn,errEl,nomeFn,aoSalvar){
+ const rotulo=btn.textContent;
+ btn.onclick=async()=>{
+  if(rec){gravarParar();return}
+  errEl.textContent='';
+  try{
+   await gravarIniciar(async(blob,seg)=>{
+    btn.textContent=rotulo;btn.classList.remove('gravando');
+    if(blob.size<800){errEl.textContent='Não captei som. Tente de novo, falando perto do microfone.';return}
+    try{const v={id:'v'+Date.now(),nome:nomeFn(),blob,dur:seg};await vozPut(v);VOZES.push(v);renderVozes();opcoesVoz();if(AL)sincronizarVozes();if(aoSalvar)aoSalvar(v)}
+    catch(e){errEl.textContent='Não consegui salvar a gravação neste aparelho.'}
+   },seg=>{btn.textContent='⏹ Parar ('+fmt(seg)+')'});
+   btn.textContent='⏹ Parar (0:00)';btn.classList.add('gravando');
+  }catch(e){errEl.textContent=msgMic(e)}
+ };
+}
+
+let audioAtual=null;const tocouEm={};
+function pararVoz(){if(audioAtual){try{audioAtual.pause()}catch(e){}audioAtual=null}}
+function tocarBlob(blob){
+ pararVoz();const url=URL.createObjectURL(blob),au=new Audio(url);
+ au.onended=()=>URL.revokeObjectURL(url);audioAtual=au;au.play().catch(()=>{});
+}
+function vozDe(a){
+ const v=a.voz||'padrao';
+ if(v==='nenhuma')return null;
+ if(v!=='padrao'){const x=VOZES.find(y=>y.id===v);if(x)return x}
+ return VOZES.find(y=>y.id===S.cfg.vozPadrao)||null;
+}
+function tocarVozAviso(a,forcar){
+ if(!forcar){
+  if(S.cfg.saida==='texto')return;
+  const agora=Date.now();if(tocouEm[a.id]&&agora-tocouEm[a.id]<20000)return;tocouEm[a.id]=agora;
+ }
+ const v=vozDe(a);if(v)tocarBlob(v.blob);
+}
+function renderVozes(){
+ const L=$('#vozLista');
+ if(!VOZES.length){L.innerHTML='<div class="vazio">Nenhuma voz gravada ainda.</div>';return}
+ L.innerHTML=VOZES.map(v=>{const pad=S.cfg.vozPadrao===v.id;
+  return `<div class="card item" style="background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--acc)">
+  <div class="corpo"><div class="t">${esc(v.nome)}</div><div class="meta">${fmt(v.dur||0)}${pad?' · voz padrão':''}</div></div>
+  <div class="acoes"><button class="sm" data-v="play" data-id="${esc(v.id)}">▶ Ouvir</button>
+  <button class="sm sec ${pad?'on':''}" data-v="pad" data-id="${esc(v.id)}">${pad?'✓ Padrão':'Usar como padrão'}</button>
+  <button class="sm sec" data-v="ren" data-id="${esc(v.id)}">Renomear</button>
+  <button class="sm bad" data-v="del" data-id="${esc(v.id)}">Excluir</button></div></div>`}).join('');
+}
+$('#vozLista').onclick=async e=>{
+ const b=e.target.closest('button');if(!b)return;
+ const v=VOZES.find(x=>x.id===b.dataset.id);if(!v)return;
+ if(b.dataset.v==='play')tocarBlob(v.blob);
+ if(b.dataset.v==='pad'){S.cfg.vozPadrao=S.cfg.vozPadrao===v.id?'':v.id;save();renderVozes();opcoesVoz()}
+ if(b.dataset.v==='ren'){const n=prompt('Novo nome da gravação',v.nome);if(n&&n.trim()){v.nome=n.trim().slice(0,60);await vozPut(v);renderVozes();opcoesVoz()}}
+ if(b.dataset.v==='del'){if(!confirm('Excluir esta gravação?'))return;await vozDel(v.id);if(AL)AL.apagarVoz({id:v.id}).catch(()=>{});VOZES=VOZES.filter(x=>x!==v);if(S.cfg.vozPadrao===v.id){S.cfg.vozPadrao='';save()}renderVozes();opcoesVoz();render()}
+};
+function opcoesVoz(){
+ const s=$('#fVoz'),atual=s.value,pad=VOZES.find(v=>v.id===S.cfg.vozPadrao);
+ s.innerHTML=`<option value="padrao">Voz padrão${pad?' ('+esc(pad.nome)+')':' (nenhuma definida)'}</option><option value="nenhuma">Sem voz neste lembrete</option>`+VOZES.map(v=>`<option value="${esc(v.id)}">${esc(v.nome)}</option>`).join('');
+ s.value=[...s.options].some(o=>o.value===atual)?atual:'padrao';
+}
+ligarGravador($('#gravar'),$('#gravErro'),()=>$('#vozNome').value.trim()||'Minha voz '+(VOZES.length+1),()=>{$('#vozNome').value=''});
+ligarGravador($('#fGravar'),$('#fGravErro'),()=>'Voz – '+($('#fTitulo').value.trim()||'lembrete').slice(0,40),v=>{$('#fVoz').value=v.id});
+$('#fVozOuvir').onclick=()=>{const v=vozDe({voz:$('#fVoz').value});if(v)tocarBlob(v.blob);else $('#fGravErro').textContent='Nenhuma voz para ouvir aqui.'};
+
+/* ===== lembretes ===== */
+function avisar(a,min){toast(a,montar(a,min));tocarVozAviso(a)}
+/* alarme: toca se o aviso ficar 1 min sem ser concluído */
+let actx=null,alarmeInt=null;const alarmes=new Set();
+function audio(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();return actx}catch(e){return null}}
+document.addEventListener('click',audio);
+function bip(f,ini,dur){const c=audio();if(!c)return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+ini;o.type='square';o.frequency.value=f;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.25,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+0.05)}
+function iniciarAlarme(){if(alarmeInt)return;const toca=()=>{bip(880,0,.18);bip(1175,.25,.18);bip(880,.5,.18)};toca();alarmeInt=setInterval(toca,1500)}
+function pararAlarme(){if(!alarmes.size&&alarmeInt){clearInterval(alarmeInt);alarmeInt=null}}
+function encerrar(d){clearTimeout(d._t);alarmes.delete(d);d.remove();pararAlarme()}
+function limparToasts(id){document.querySelectorAll('.toast').forEach(t=>{if(t._id===id)encerrar(t)})}
+function toast(a,txt){
+ const temVoz=!!vozDe(a);
+ const d=document.createElement('div');d.className='toast';d._id=a.id;
+ d.innerHTML=`<p>${esc(txt)}</p><p class="meta al hid">Alarme tocando. Clique em Concluir para parar.</p><div class="acoes"><button class="sm" data-x="ok">Concluir</button><button class="sm sec" data-x="adiar">Adiar 5 min</button>${temVoz?'<button class="sm sec" data-x="voz">▶ Ouvir voz</button>':''}</div>`;
+ d.onclick=e=>{const x=e.target.dataset.x;if(!x)return;
+  if(x==='voz'){tocarVozAviso(a,true);return}
+  if(x==='ok'){concluir(a);pararVoz()}
+  if(x==='adiar'){S.snoozes.push({id:a.id,at:Date.now()+300000})}
+  save();encerrar(d);render()};
+ d._t=setTimeout(()=>{alarmes.add(d);d.classList.add('alarme');d.querySelector('.al').classList.remove('hid');iniciarAlarme()},60000);
+ $('#toasts').appendChild(d);
+}
+let perdidos=[];
+function tick(){
+ if(avancarRecorrentes()){save();render()}
+ if(NATIVE)return; /* no Android quem avisa é o alarme nativo */
+ const now=Date.now();let mudou=false;
+ for(const a of S.ags){
+  if(a.estado!=='pendente')continue;
+  const t=new Date(a.dt).getTime();
+  for(const m of a.leads){
+   const k=a.id+':'+m;if(S.fired[k])continue;
+   if(now>=t-m*60000){S.fired[k]=1;mudou=true;
+    if(now>t+300000)perdidos.push(a);else avisar(a,Math.max(0,Math.round((t-now)/60000)))}
+  }
+ }
+ S.snoozes=S.snoozes.filter(s=>{
+  if(now<s.at)return true;
+  const a=S.ags.find(x=>x.id===s.id);
+  if(a&&a.estado==='pendente'){avisar(a,Math.max(0,Math.round((new Date(a.dt)-now)/60000)))}
+  mudou=true;return false});
+ if(perdidos.length){
+  const n=perdidos.length;perdidos=[];
+  const d=document.createElement('div');d.className='toast';
+  d.innerHTML=`<p>Você tinha ${n} aviso(s) que passaram enquanto a página estava fechada. Confira sua lista.</p><button class="sm sec">Fechar</button>`;
+  d.onclick=()=>d.remove();$('#toasts').appendChild(d)}
+ if(mudou)save();
+}
+
+/* ===== lista de compromissos ===== */
+function render(){
+ const f=$('#filtro').value;
+ const L=S.ags.filter(a=>!f||a.estado===f).sort((x,y)=>x.dt.localeCompare(y.dt));
+ if(!L.length){$('#lista').innerHTML='<div class="vazio">Nenhum compromisso por aqui. Toque em “Novo compromisso” para começar.</div>';return}
+ let h='',dia='';
+ for(const a of L){
+  const d=a.dt.slice(0,10);
+  if(d!==dia){dia=d;h+=`<div class="dia">${new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>`}
+  const vz=a.voz==='nenhuma'?' · sem voz':(a.voz&&a.voz!=='padrao'&&VOZES.some(v=>v.id===a.voz)?' · 🎙 voz própria':'');
+  h+=`<div class="card item ${a.prioridade} ${a.estado}"><div class="hora">${a.dt.slice(11,16)}</div>
+  <div class="corpo"><div class="t">${esc(a.titulo)}</div>
+  <div class="meta">${esc(a.cat)} · ${esc(a.prioridade)}${a.local?' · '+esc(a.local):''}${a.estado!=='pendente'?' · '+esc(a.estado):''}${vz}${a.rep&&a.rep!=='nenhuma'?' · ↻ '+REP[a.rep]:''}</div>
+  ${a.desc?`<div class="meta">${esc(a.desc)}</div>`:''}</div>
+  <div class="acoes">${a.estado==='pendente'?`<button class="sm" data-a="ok" data-id="${a.id}">Concluir</button>`:''}
+  <button class="sm sec" data-a="ed" data-id="${a.id}">Editar</button>
+  <button class="sm bad" data-a="del" data-id="${a.id}">Excluir</button></div></div>`;
+ }
+ $('#lista').innerHTML=h;
+}
+$('#lista').onclick=e=>{
+ const b=e.target.closest('button');if(!b)return;
+ const a=S.ags.find(x=>x.id==b.dataset.id);if(!a)return;
+ if(b.dataset.a==='ok')concluir(a);
+ if(b.dataset.a==='del'){if(!confirm('Excluir este compromisso?'))return;limparToasts(a.id);S.ags=S.ags.filter(x=>x!==a)}
+ if(b.dataset.a==='ed'){abrirForm(a);return}
+ save();render();
+};
+$('#filtro').onchange=render;
+
+/* ===== formulário de compromisso ===== */
+let editando=null;
+$('#fLeads').innerHTML=LEADS.map(([m,n])=>`<label><input type="checkbox" value="${m}"> ${n}</label>`).join('');
+function abrirForm(a,pre){
+ editando=a||null;pre=pre||{};$('#erro').textContent='';$('#fGravErro').textContent='';
+ $('#formTitulo').textContent=a?'Editar compromisso':'Novo compromisso';
+ const agora=new Date(Date.now()+3600000),p=n=>String(n).padStart(2,'0');
+ $('#fTitulo').value=a?a.titulo:(pre.titulo||'');
+ $('#fData').value=a?a.dt.slice(0,10):(pre.data||`${agora.getFullYear()}-${p(agora.getMonth()+1)}-${p(agora.getDate())}`);
+ $('#fHora').value=a?a.dt.slice(11,16):(pre.hora||`${p(agora.getHours())}:00`);
+ $('#fCat').value=a?a.cat:(pre.cat||'Pessoal');$('#fPri').value=a?a.prioridade:(pre.pri||'normal');
+ $('#fLocal').value=a?a.local:'';$('#fDesc').value=a?a.desc:(pre.desc||'');
+ const leads=a?a.leads:(pre.leads||[30,0]);
+ document.querySelectorAll('#fLeads input').forEach(c=>c.checked=leads.includes(+c.value));
+ const extra=leads.find(m=>!LEADS.some(l=>l[0]===m));$('#fLeadX').value=extra||'';
+ $('#fRep').value=a&&a.rep?a.rep:'nenhuma';
+ opcoesVoz();$('#fVoz').value=a&&a.voz?a.voz:'padrao';if(!$('#fVoz').value)$('#fVoz').value='padrao';
+ $('#form').classList.remove('hid');$('#fTitulo').focus();
+}
+$('#novo').onclick=()=>abrirForm();
+$('#cancelar').onclick=()=>{gravarParar();$('#form').classList.add('hid')};
+$('#salvar').onclick=()=>{
+ const titulo=$('#fTitulo').value.trim(),d=$('#fData').value,h=$('#fHora').value;
+ if(!titulo){$('#erro').textContent='O título é obrigatório.';return}
+ if(!d||!h){$('#erro').textContent='Informe data e horário.';return}
+ gravarParar();
+ const leads=[...document.querySelectorAll('#fLeads input:checked')].map(c=>+c.value);
+ const x=parseInt($('#fLeadX').value,10);if(x>0&&!leads.includes(x))leads.push(x);
+ const dados={titulo,dt:d+'T'+h,cat:$('#fCat').value,prioridade:$('#fPri').value,local:$('#fLocal').value.trim(),desc:$('#fDesc').value.trim(),leads,voz:$('#fVoz').value||'padrao',rep:$('#fRep').value};
+ if(editando){
+  Object.assign(editando,dados);limparFired(editando);
+ }else S.ags.push(Object.assign({id:S.next++,estado:'pendente'},dados));
+ save();$('#form').classList.add('hid');render();tick();
+};
+
+/* ===== abas ===== */
+function mudarAba(nome){
+ document.querySelectorAll('[data-aba]').forEach(x=>x.classList.toggle('on',x.dataset.aba===nome));
+ for(const id of ['comp','org','pers'])$('#'+id).classList.toggle('hid',id!==nome);
+}
+document.querySelectorAll('[data-aba]').forEach(b=>b.onclick=()=>mudarAba(b.dataset.aba));
+
+/* ===== organizador (pastas e peças) ===== */
+const STATUS={fazer:'A fazer',elab:'Em elaboração',rev:'Para revisão',prot:'Protocolado',conc:'Concluído'};
+const FEITO=s=>s==='prot'||s==='conc';
+const optStatus=sel=>Object.entries(STATUS).map(([k,n])=>`<option value="${k}"${k===sel?' selected':''}>${n}</option>`).join('');
+$('#iStatus').innerHTML=optStatus('fazer');
+function diasAte(d){const h=new Date();h.setHours(0,0,0,0);return Math.round((new Date(d+'T00:00')-h)/86400000)}
+function rotuloPrazo(d){
+ const n=diasAte(d),f=new Date(d+'T12:00').toLocaleDateString('pt-BR');
+ if(n<0)return f+' · vencido há '+(-n)+(n===-1?' dia':' dias');
+ if(n===0)return f+' · hoje';if(n===1)return f+' · amanhã';
+ return f+' · em '+n+' dias';
+}
+let pastaId=null,pEdit=null,iEdit=null;
+const pastaAtual=()=>S.pastas.find(p=>p.id===pastaId);
+
+function renderPastas(){
+ if(!S.pastas.length){$('#pLista').innerHTML='<div class="vazio">Nenhuma pasta ainda. Toque em “Nova pasta” para começar.</div>';return}
+ $('#pLista').innerHTML=S.pastas.map(p=>{
+  const tot=p.itens.length,ok=p.itens.filter(i=>FEITO(i.status)).length;
+  const pr=p.itens.filter(i=>!FEITO(i.status)&&i.prazo).map(i=>i.prazo).sort()[0];
+  return `<div class="card"><div class="t">${esc(p.nome)}</div>
+  ${p.cliente?`<div class="meta">${esc(p.cliente)}</div>`:''}
+  <div class="meta">${ok} de ${tot} ${tot===1?'item feito':'itens feitos'}${pr?` · próximo prazo: <span class="${diasAte(pr)<0?'venc':''}">${rotuloPrazo(pr)}</span>`:''}</div>
+  ${p.obs?`<div class="meta">${esc(p.obs)}</div>`:''}
+  <div class="acoes" style="margin-top:10px"><button class="sm" data-p="abrir" data-id="${p.id}">Abrir</button>
+  <button class="sm sec" data-p="ed" data-id="${p.id}">Editar</button>
+  <button class="sm bad" data-p="del" data-id="${p.id}">Excluir</button></div></div>`}).join('');
+}
+function abrirP(p){
+ pEdit=p||null;$('#pErro').textContent='';
+ $('#pFormTitulo').textContent=p?'Editar pasta':'Nova pasta';
+ $('#pNome').value=p?p.nome:'';$('#pCliente').value=p?p.cliente:'';$('#pObs').value=p?p.obs:'';
+ $('#pForm').classList.remove('hid');$('#pNome').focus();
+}
+$('#pNova').onclick=()=>abrirP();
+$('#pCancelar').onclick=()=>$('#pForm').classList.add('hid');
+$('#pSalvar').onclick=()=>{
+ const nome=$('#pNome').value.trim();if(!nome){$('#pErro').textContent='O nome é obrigatório.';return}
+ const d={nome,cliente:$('#pCliente').value.trim(),obs:$('#pObs').value.trim()};
+ if(pEdit)Object.assign(pEdit,d);else S.pastas.push(Object.assign({id:S.nextP++,itens:[]},d));
+ save();$('#pForm').classList.add('hid');renderPastas();
+};
+$('#pLista').onclick=e=>{
+ const b=e.target.closest('button');if(!b)return;
+ const p=S.pastas.find(x=>x.id==b.dataset.id);if(!p)return;
+ if(b.dataset.p==='abrir'){abrirPasta(p.id)}
+ if(b.dataset.p==='ed')abrirP(p);
+ if(b.dataset.p==='del'){if(!confirm('Excluir a pasta “'+p.nome+'” e todos os itens dela?'))return;S.pastas=S.pastas.filter(x=>x!==p);save();renderPastas()}
+};
+function abrirPasta(id){
+ pastaId=id;$('#orgPastas').classList.add('hid');$('#orgItens').classList.remove('hid');
+ $('#iForm').classList.add('hid');renderItens();
+}
+$('#iVoltar').onclick=()=>{pastaId=null;$('#orgItens').classList.add('hid');$('#orgPastas').classList.remove('hid');renderPastas()};
+$('#iFiltro').onchange=()=>renderItens();
+function renderItens(){
+ const p=pastaAtual();if(!p)return;
+ $('#iTitulo').textContent=p.nome;
+ const tot=p.itens.length,ok=p.itens.filter(i=>FEITO(i.status)).length;
+ $('#iSub').textContent=(p.cliente?p.cliente+' · ':'')+ok+' de '+tot+(tot===1?' item feito':' itens feitos');
+ const f=$('#iFiltro').value;
+ const L=p.itens.filter(i=>!f||(f==='feitos'?FEITO(i.status):!FEITO(i.status)))
+  .sort((a,b)=>(FEITO(a.status)-FEITO(b.status))||((a.prazo||'9999').localeCompare(b.prazo||'9999')));
+ if(!L.length){$('#iLista').innerHTML='<div class="vazio">Nada por aqui. Toque em “Nova peça / item” para adicionar.</div>';return}
+ $('#iLista').innerHTML=L.map(i=>{
+  const atrasado=!FEITO(i.status)&&i.prazo&&diasAte(i.prazo)<0;
+  return `<div class="card item ${atrasado?'urgente':''} ${FEITO(i.status)?'concluido':''}">
+  <div class="corpo"><div class="t">${esc(i.tipo)}${i.titulo?' — '+esc(i.titulo):''}</div>
+  ${i.prazo?`<div class="meta">Prazo: <span class="${atrasado?'venc':''}">${rotuloPrazo(i.prazo)}</span></div>`:''}
+  ${i.obs?`<div class="meta" style="white-space:pre-wrap">${esc(i.obs)}</div>`:''}
+  <select class="inl" data-st="1" data-id="${i.id}" aria-label="Status">${optStatus(i.status)}</select></div>
+  <div class="acoes">${i.prazo&&!FEITO(i.status)?`<button class="sm" data-i="lem" data-id="${i.id}">⏰ Lembrete do prazo</button>`:''}
+  <button class="sm sec" data-i="ed" data-id="${i.id}">Editar</button>
+  <button class="sm bad" data-i="del" data-id="${i.id}">Excluir</button></div></div>`}).join('');
+}
+function abrirI(i){
+ iEdit=i||null;$('#iErro').textContent='';
+ $('#iFormTitulo').textContent=i?'Editar peça / item':'Nova peça / item';
+ $('#iTipo').value=i?i.tipo:'';$('#iTitulo2').value=i?i.titulo:'';
+ $('#iStatus').innerHTML=optStatus(i?i.status:'fazer');$('#iPrazo').value=i?i.prazo:'';$('#iObs').value=i?i.obs:'';
+ $('#iForm').classList.remove('hid');$('#iTipo').focus();
+}
+$('#iNovo').onclick=()=>abrirI();
+$('#iCancelar').onclick=()=>$('#iForm').classList.add('hid');
+$('#iSalvar').onclick=()=>{
+ const p=pastaAtual();if(!p)return;
+ const tipo=$('#iTipo').value.trim();if(!tipo){$('#iErro').textContent='Informe o tipo da peça ou item.';return}
+ const d={tipo,titulo:$('#iTitulo2').value.trim(),status:$('#iStatus').value,prazo:$('#iPrazo').value,obs:$('#iObs').value.trim()};
+ if(iEdit)Object.assign(iEdit,d);else p.itens.push(Object.assign({id:S.nextI++},d));
+ save();$('#iForm').classList.add('hid');renderItens();
+};
+$('#iLista').onchange=e=>{
+ if(!e.target.dataset.st)return;
+ const p=pastaAtual(),i=p&&p.itens.find(x=>x.id==e.target.dataset.id);if(!i)return;
+ i.status=e.target.value;save();renderItens();
+};
+$('#iLista').onclick=e=>{
+ const b=e.target.closest('button');if(!b)return;
+ const p=pastaAtual(),i=p&&p.itens.find(x=>x.id==b.dataset.id);if(!i)return;
+ if(b.dataset.i==='ed')abrirI(i);
+ if(b.dataset.i==='del'){if(!confirm('Excluir este item?'))return;p.itens=p.itens.filter(x=>x!==i);save();renderItens()}
+ if(b.dataset.i==='lem'){
+  mudarAba('comp');
+  abrirForm(null,{titulo:'Prazo: '+i.tipo+(i.titulo?' — '+i.titulo:'')+' ('+p.nome+')',data:i.prazo,hora:'09:00',cat:'Trabalho',pri:'alta',leads:[1440,60]});
+ }
+};
+
+/* ===== nome do usuário ===== */
+function renderSub(){const n=nomeUsuario();$('#sub').textContent=n?`Olá, ${n}! Seus compromissos, do seu jeito.`:'Seus compromissos, do seu jeito.'}
+function renderNome(){$('#nome').value=S.cfg.nome||'';renderSub();$('#boasVindas').classList.toggle('hid',!!nomeUsuario()||S.cfg.nomePerguntado)}
+$('#nome').oninput=e=>{S.cfg.nome=e.target.value;S.cfg.nomePerguntado=true;save();renderSub();previa()};
+$('#nomeBvOk').onclick=()=>{S.cfg.nome=$('#nomeBv').value.trim();S.cfg.nomePerguntado=true;save();renderNome();previa()};
+$('#nomeBvNao').onclick=()=>{S.cfg.nomePerguntado=true;save();renderNome()};
+$('#nomeBv').onkeydown=e=>{if(e.key==='Enter')$('#nomeBvOk').click()};
+
+/* ===== personalidade ===== */
+function renderModos(){
+ $('#modos').innerHTML=Object.entries(MODOS).map(([k,m])=>`<button class="${k===S.cfg.modo?'':'sec'}" data-m="${k}">${m.nome}<small>${m.desc}</small></button>`).join('');
+ $('#custom').value=S.cfg.custom[S.cfg.modo]||'';
+ previa();
+}
+function previa(){$('#previa').textContent=montar({titulo:'Reunião com o cliente',dt:'2026-01-01T14:30'},30)}
+$('#modos').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.cfg.modo=b.dataset.m;save();renderModos()};
+$('#saida').onchange=e=>{S.cfg.saida=e.target.value;save()};
+$('#custom').oninput=e=>{S.cfg.custom[S.cfg.modo]=e.target.value;save();previa()};
+$('#saida').value=S.cfg.saida;
+$('#notaVoz').textContent=NATIVE?'No app, o alarme toca a sua voz e depois o toque mesmo com o app fechado. As gravações ficam só neste aparelho.':'Na versão de navegador, os avisos só tocam com esta página aberta. As gravações ficam só neste aparelho.';
+
+/* ===== Android: alarme nativo (voz primeiro, depois o toque), funciona com o app fechado ===== */
+function blobB64(b){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]||'');r.onerror=no;r.readAsDataURL(b)})}
+async function sincronizarVozes(){
+ if(!AL)return;
+ try{
+  const r=await AL.listarVozes(),tem=new Set(r.ids||[]);
+  for(const v of VOZES){if(tem.has(v.id))continue;await AL.salvarVoz({id:v.id,dados:await blobB64(v.blob)})}
+ }catch(e){}
+}
+async function enviarAlarmes(){
+ await vozesProntas;
+ if(avancarRecorrentes())persistir();
+ const now=Date.now(),lista=[];
+ const item=(a,at,min)=>{const v=vozDe(a);lista.push({at,apptId:a.id,titulo:'Agenda Arretada',corpo:montar(a,min),voz:v?v.id:''})};
+ for(const a of S.ags){
+  if(a.estado!=='pendente')continue;
+  const t=new Date(a.dt).getTime();
+  for(const m of a.leads){const at=t-m*60000;if(at>now)item(a,at,m)}
+ }
+ S.snoozes=S.snoozes.filter(s=>s.at>now);
+ for(const s of S.snoozes){const a=S.ags.find(x=>x.id===s.id);if(a&&a.estado==='pendente')item(a,s.at,0)}
+ lista.sort((x,y)=>x.at-y.at);
+ await AL.agendar({alarmes:lista.slice(0,300),config:{toque:S.cfg.toque,volume:S.cfg.volume,repeticoes:S.cfg.repeticoes,crescente:S.cfg.crescente,saida:S.cfg.saida}});
+}
+let agTimer=null;
+function agendarNativo(){clearTimeout(agTimer);agTimer=setTimeout(()=>{enviarAlarmes().catch(()=>{})},400)}
+/* ações tomadas fora do app (Concluir / Adiar na notificação ou na tela cheia) */
+async function consumirAcoes(){
+ try{
+  const r=await AL.pegarAcoes();let mudou=false;
+  for(const x of (r.acoes||[])){
+   const a=S.ags.find(q=>q.id===x.apptId);if(!a)continue;
+   if(x.acao==='concluir'){concluir(a);mudou=true}
+   if(x.acao==='adiar'&&x.ate){S.snoozes.push({id:a.id,at:x.ate});mudou=true}
+  }
+  if(mudou){save();render()}
+ }catch(e){}
+}
+async function carregarToques(){
+ try{
+  const r=await AL.listarToques();
+  $('#toque').innerHTML='<option value="">Alarme padrão do celular</option>'+(r.toques||[]).map(t=>`<option value="${esc(t.uri)}">${esc(t.titulo)}</option>`).join('');
+  $('#toque').value=S.cfg.toque;if($('#toque').value!==S.cfg.toque)$('#toque').value='';
+ }catch(e){}
+}
+async function atualizarPerm(){
+ try{
+  const e=await AL.estado();
+  const linhas=[['notificacoes','Notificações liberadas',e.notificacoes,'Permitir'],['telaCheia','Alarme em tela cheia (tela bloqueada)',e.telaCheia,'Permitir'],['bateria','Sem economia de bateria para o app',e.bateria,'Liberar']];
+  $('#perm').innerHTML=linhas.map(([k,n,ok,b])=>`<div class="bar" style="margin:0 0 8px"><span>${ok?'✔':'✖'} ${n}</span>${ok?'':`<button class="sm" data-perm="${k}">${b}</button>`}</div>`).join('')
+   +'<p class="nota">Em alguns celulares (Xiaomi, Samsung, Motorola) também é preciso permitir “início automático” ou “sem restrições” nas configurações de bateria do app. Confira também se o volume de <b>alarme</b> do celular não está no zero.</p><button class="sm sec" data-perm="app">Abrir configurações do app</button>';
+ }catch(e){}
+}
+function iniciarUINativo(){
+ $('#cardNativo').classList.remove('hid');
+ $('#volume').value=S.cfg.volume;$('#volumeV').textContent=S.cfg.volume+'%';
+ $('#repet').value=String(S.cfg.repeticoes);$('#cresc').checked=!!S.cfg.crescente;
+ $('#toque').onchange=e=>{S.cfg.toque=e.target.value;save()};
+ $('#volume').oninput=e=>{S.cfg.volume=+e.target.value;$('#volumeV').textContent=S.cfg.volume+'%';save()};
+ $('#repet').onchange=e=>{S.cfg.repeticoes=parseInt(e.target.value,10);save()};
+ $('#cresc').onchange=e=>{S.cfg.crescente=e.target.checked;save()};
+ $('#toquePrevia').onclick=()=>AL.previaToque({uri:S.cfg.toque,volume:S.cfg.volume}).catch(()=>{});
+ $('#perm').onclick=e=>{const b=e.target.closest('button');if(b)AL.abrir({tipo:b.dataset.perm}).catch(()=>{})};
+ $('#testar').onclick=async()=>{
+  $('#testeMsg').textContent='Preparando…';
+  try{
+   await enviarAlarmes();await sincronizarVozes();
+   const v=vozDe({voz:'padrao'});
+   await AL.testar({segundos:10,voz:v?v.id:''});
+   $('#testeMsg').textContent='Toca em 10 segundos. Pode bloquear a tela ou fechar o app.';
+  }catch(e){$('#testeMsg').textContent='Não consegui agendar o teste.'}
+ };
+ AL.addListener('acao',()=>consumirAcoes());
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden){consumirAcoes();atualizarPerm()}});
+ carregarToques();atualizarPerm();
+}
+if(NATIVE&&AL){
+ window.__sync=agendarNativo;
+ iniciarUINativo();
+ (async()=>{try{if(LN)await LN.requestPermissions()}catch(e){}await consumirAcoes();agendarNativo();atualizarPerm()})();
+}
+
+/* ===== início ===== */
+renderModos();renderNome();render();renderPastas();opcoesVoz();renderVozes();tick();setInterval(tick,15000);
+vozAll().then(l=>{VOZES=(l||[]).sort((a,b)=>String(a.id).localeCompare(String(b.id)));renderVozes();opcoesVoz();render();_vozOk();if(AL)sincronizarVozes().then(agendarNativo)}).catch(()=>{_vozOk()});
+</script>
+</body>
+</html>
